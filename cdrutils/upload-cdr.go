@@ -17,7 +17,7 @@ func UploadCdr()  {
 
 
 	type queryGetResponse struct {
-		rowCount   int `json:"rowCount"`
+		RowCount   int `json:"rowCount"`
 		Error      string `json:"error"`
 		Items [] orm.Params`json:"items"`
 	}
@@ -27,20 +27,23 @@ func UploadCdr()  {
 	o := orm.NewOrm()
 	o.Using("default")
 
+	o.Raw("update cdr set status='0'  ").Exec() //TEMP
 	_,err := o.Raw("update cdr set status='1'  "+
 	" where id in (select id from cdr where status='0' limit 1000)	").Exec()
 	if err!=nil {
 		panic(err)
 	}
 	var arr [] orm.Params
-	_,err = o.Raw("select c.id,c.local_ip_v4,caller_id_name,destination_number,context"+
-	",to_char(start_stamp,'YYYY-DD-MM HH24:MI:SS TZ')as start_stamp"+
-	",to_char(answer_stamp,'YYYY-DD-MM HH24:MI:SS TZ')as answer_stamp"+
-	",to_char(end_stamp,'YYYY-DD-MM HH24:MI:SS TZ')as end_stamp "+
+	sql := "select c.id,c.local_ip_v4,caller_id_name,caller_id_number,destination_number,context"+
+	",extract(epoch from start_stamp) start_stamp "+
+	",extract(epoch from answer_stamp) answer_stamp " +
+	",extract(epoch from end_stamp) end_stamp " +
 	",duration,billsec,hangup_cause,uuid,bleg_uuid,accountcode,read_codec,write_codec,sip_hangup_disposition,ani"+
-	"  from cdr c where status='1'").Values(&arr)
+	"  from cdr c where status='1'"
+	fmt.Println(sql)
+	_,err = o.Raw(sql).Values(&arr)
 	if err!=nil {
-		panic(err)
+		//panic(err)
 	}
 	//	id |  local_ip_v4  | caller_id_name | caller_id_number | destination_number | context |      start_stamp       |      answer_stamp      |       e
 	//	nd_stamp        | duration | billsec |   hangup_cause    |                 uuid                 |              bleg_uuid               | accountco
@@ -53,7 +56,7 @@ func UploadCdr()  {
 	respO := queryGetResponse{}
 	respO.Items = arr
 	respO.Error = "0"
-	respO.rowCount = len(arr)
+	respO.RowCount = len(arr)
 	jsonData, err := json.Marshal(respO)
 
 	if err==nil {
