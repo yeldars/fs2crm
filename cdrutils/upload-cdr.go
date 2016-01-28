@@ -27,7 +27,7 @@ func UploadCdr()  {
 	o := orm.NewOrm()
 	o.Using("default")
 
-	o.Raw("update cdr set status='0'  ").Exec() //TEMP
+	//o.Raw("update cdr set status='0'  ").Exec() //TEMP
 	_,err := o.Raw("update cdr set status='1'  "+
 	" where id in (select id from cdr where status='0' limit 1000)	").Exec()
 	if err!=nil {
